@@ -29,7 +29,7 @@ GR Commercial Finance is a commercial finance broker, not a lender. All finance 
 
 const DIRECT_PRODUCTS = {
   bridging: {
-    label: "Bridging Finance", color: "#c8952a", icon: "Bridging",
+    label: "Bridging Finance", color: "#c8952a",
     description: "Auction buyers, chain breaks, urgent property purchases",
     sources: ["property auction catalogues", "rightmove", "land registry", "property forums"],
     searchQueries: [
@@ -39,7 +39,7 @@ const DIRECT_PRODUCTS = {
     ],
   },
   development: {
-    label: "Development Finance", color: "#2a7fc8", icon: "Dev",
+    label: "Development Finance", color: "#2a7fc8",
     description: "Planning permissions granted, new build and conversion projects",
     sources: ["planning portal", "local council planning", "Companies House"],
     searchQueries: [
@@ -49,7 +49,7 @@ const DIRECT_PRODUCTS = {
     ],
   },
   refurbishment: {
-    label: "Refurbishment Loans", color: "#9b5cf6", icon: "Refurb",
+    label: "Refurbishment Loans", color: "#9b5cf6",
     description: "Heavy refurb, HMO conversions, property upgrades",
     sources: ["EPC register", "planning applications", "property portals"],
     searchQueries: [
@@ -59,7 +59,7 @@ const DIRECT_PRODUCTS = {
     ],
   },
   businessloan: {
-    label: "Business Loans", color: "#2ac87a", icon: "Biz",
+    label: "Business Loans", color: "#2ac87a",
     description: "SMEs in England and Wales seeking growth capital",
     sources: ["Companies House", "business news", "trade press"],
     searchQueries: [
@@ -69,7 +69,7 @@ const DIRECT_PRODUCTS = {
     ],
   },
   mca: {
-    label: "Merchant Cash Advance", color: "#ef4444", icon: "MCA",
+    label: "Merchant Cash Advance", color: "#ef4444",
     description: "Retail, hospitality and card-taking SMEs needing fast cash",
     sources: ["Google Maps", "hospitality directories", "new business openings"],
     searchQueries: [
@@ -82,40 +82,40 @@ const DIRECT_PRODUCTS = {
 
 const REFERRAL_PARTNERS = {
   accountants: {
-    label: "Accountants", color: "#0ea5e9", icon: "Acct",
+    label: "Accountants", color: "#0ea5e9",
     description: "SME accountants whose clients need business finance",
-    searchQueries: ["chartered accountant SME clients England Wales 2026", "accountancy firm small business England Wales"],
+    searchQueries: ["chartered accountant SME clients England Wales 2026"],
     emailAngle: "Your SME clients may need business loans, bridging or development finance. We pay referral fees and handle everything.",
   },
   ifas: {
-    label: "IFAs", color: "#f59e0b", icon: "IFA",
+    label: "IFAs", color: "#f59e0b",
     description: "Independent financial advisers with property investor clients",
     searchQueries: ["independent financial adviser IFA property investor England Wales 2026"],
     emailAngle: "Your property investor and business owner clients likely need specialist commercial finance. We offer competitive referral fees.",
   },
   architects: {
-    label: "Architects", color: "#8b5cf6", icon: "Arch",
+    label: "Architects", color: "#8b5cf6",
     description: "Architects whose clients need development or refurb finance",
     searchQueries: ["architect practice residential development projects England Wales 2026"],
-    emailAngle: "When your clients get planning approved, they often need development or refurbishment finance fast. We can help and reward the introduction.",
+    emailAngle: "When your clients get planning approved they often need development or refurbishment finance fast. We can help and reward the introduction.",
   },
   construction: {
-    label: "Construction Firms", color: "#f97316", icon: "Build",
+    label: "Construction Firms", color: "#f97316",
     description: "Builders and contractors whose clients need project finance",
     searchQueries: ["construction firm builder England Wales residential development 2026"],
-    emailAngle: "Your developer clients need fast, reliable project finance to get builds started. We can fund them and pay you for the introduction.",
+    emailAngle: "Your developer clients need fast reliable project finance to get builds started. We can fund them and pay you for the introduction.",
   },
   solicitors: {
-    label: "Solicitors", color: "#10b981", icon: "Sol",
+    label: "Solicitors", color: "#10b981",
     description: "Property and commercial solicitors handling transactions",
     searchQueries: ["property solicitor conveyancing practice England Wales 2026"],
     emailAngle: "Your property and commercial clients regularly need bridging and development finance. We complete fast and pay referral fees.",
   },
   estateagents: {
-    label: "Estate Agents", color: "#ec4899", icon: "EA",
+    label: "Estate Agents", color: "#ec4899",
     description: "Agents with buyers who need fast finance",
     searchQueries: ["estate agent property sales England Wales 2026"],
-    emailAngle: "When your buyers need fast finance to complete, we move quickly and pay you for the referral.",
+    emailAngle: "When your buyers need fast finance to complete we move quickly and pay you for the referral.",
   },
 };
 
@@ -129,34 +129,19 @@ GEOGRAPHY: England and Wales only
 
 Find real prospects who likely need ${product.label} RIGHT NOW based on live signals.
 
-IMPORTANT: Return ONLY a valid JSON object. No markdown. No backticks. No explanation. Just the raw JSON.
-All string values must use only standard ASCII characters. Do not use curly quotes, smart apostrophes, or any special unicode characters in string values.
+IMPORTANT RULES:
+- Return ONLY a valid JSON object. No markdown. No backticks. No explanation. Just raw JSON.
+- All string values must use only standard ASCII characters.
+- Do not use curly quotes, smart apostrophes, or any special unicode characters in string values.
+- Your entire response must be a single valid JSON object starting with { and ending with }.
+- Do not include any text before or after the JSON.
 
-{
-  "leads": [
-    {
-      "companyName": "Real Company Name",
-      "contactName": "Real name or null",
-      "jobTitle": "Title or null",
-      "location": "Town, County, England or Wales",
-      "website": "domain.co.uk or null",
-      "emailAddress": "email@domain.co.uk or null",
-      "emailConfidence": "Verified or Likely or Guessed",
-      "emailSource": "How found or constructed",
-      "signal": "Specific reason they need finance now",
-      "estimatedDeal": "GBP XXX,XXX",
-      "urgency": "High or Medium or Low",
-      "qualificationScore": 82,
-      "contactHint": "How to reach them",
-      "emailSubject": "Personalised subject line",
-      "emailBody": "Dear Name, 3-4 sentences about their situation from GR Commercial Finance. ${sig}"
-    }
-  ],
-  "searchSummary": "What was found",
-  "dataSource": "Sources used"
-}
+Return this exact structure:
+{"leads":[{"companyName":"string","contactName":"string or null","jobTitle":"string or null","location":"string","website":"string or null","emailAddress":"string or null","emailConfidence":"Verified or Likely or Guessed","emailSource":"string","signal":"string","estimatedDeal":"string","urgency":"High or Medium or Low","qualificationScore":80,"contactHint":"string","emailSubject":"string","emailBody":"string"}],"searchSummary":"string","dataSource":"string"}
 
-Find 3 to 5 leads scoring 60 or above.`;
+The emailBody field should contain the full outreach email text ending with this signature: ${sig}
+
+Find 3 to 5 leads scoring 60 or above. Your entire response must be a single valid JSON object starting with { and ending with }. Do not include any text before or after the JSON.`;
 
 const REFERRAL_PROMPT = (partner, sig) => `You are a referral partner outreach agent for GR Commercial Finance, Manchester-based commercial finance broker, England and Wales.
 
@@ -166,34 +151,19 @@ ANGLE: ${partner.emailAngle}
 
 Find real ${partner.label} firms in England and Wales to build referral partnerships with.
 
-IMPORTANT: Return ONLY a valid JSON object. No markdown. No backticks. No explanation. Just the raw JSON.
-All string values must use only standard ASCII characters. Do not use curly quotes, smart apostrophes, or any special unicode characters in string values.
+IMPORTANT RULES:
+- Return ONLY a valid JSON object. No markdown. No backticks. No explanation. Just raw JSON.
+- All string values must use only standard ASCII characters.
+- Do not use curly quotes, smart apostrophes, or any special unicode characters in string values.
+- Your entire response must be a single valid JSON object starting with { and ending with }.
+- Do not include any text before or after the JSON.
 
-{
-  "partners": [
-    {
-      "companyName": "Real Firm Name",
-      "contactName": "Real name or null",
-      "jobTitle": "Partner or Director or Principal or null",
-      "location": "Town, County, England or Wales",
-      "website": "domain.co.uk or null",
-      "emailAddress": "email@domain.co.uk or null",
-      "emailConfidence": "Verified or Likely or Guessed",
-      "emailSource": "How found",
-      "firmSize": "Solo or Small 2-10 or Mid 10-50 or Large 50+",
-      "clientProfile": "Type of clients this firm works with",
-      "referralOpportunity": "Why they would be a good referral partner",
-      "partnerScore": 78,
-      "contactHint": "How to approach",
-      "emailSubject": "Partnership subject line",
-      "emailBody": "Dear Name, 3-4 sentences about partnering with GR Commercial Finance including referral fees. ${sig}"
-    }
-  ],
-  "searchSummary": "What was found",
-  "dataSource": "Sources used"
-}
+Return this exact structure:
+{"partners":[{"companyName":"string","contactName":"string or null","jobTitle":"string or null","location":"string","website":"string or null","emailAddress":"string or null","emailConfidence":"Verified or Likely or Guessed","emailSource":"string","firmSize":"string","clientProfile":"string","referralOpportunity":"string","partnerScore":78,"contactHint":"string","emailSubject":"string","emailBody":"string"}],"searchSummary":"string","dataSource":"string"}
 
-Find 3 to 5 partners scoring 60 or above.`;
+The emailBody field should contain the full partnership email text ending with this signature: ${sig}
+
+Find 3 to 5 partners scoring 60 or above. Your entire response must be a single valid JSON object starting with { and ending with }. Do not include any text before or after the JSON.`;
 
 function safeParseJSON(text) {
   const clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -266,13 +236,19 @@ export default function App() {
   const searchDirect = async (key) => {
     const p = DIRECT_PRODUCTS[key];
     const q = p.searchQueries[Math.floor(Math.random() * p.searchQueries.length)];
-    return callAPI(DIRECT_PROMPT(p, BRAND.emailSignature), `Search for: ${q}\nFind ${p.label} prospects in England and Wales for GR Commercial Finance. Deal size 50000 to 2000000 GBP. Return raw JSON only, no markdown.`);
+    return callAPI(
+      DIRECT_PROMPT(p, BRAND.emailSignature),
+      `Search for: ${q}\nFind ${p.label} prospects in England and Wales for GR Commercial Finance. Deal size 50000 to 2000000 GBP. Return a single valid JSON object only, no markdown, no text before or after the JSON.`
+    );
   };
 
   const searchReferral = async (key) => {
     const p = REFERRAL_PARTNERS[key];
     const q = p.searchQueries[Math.floor(Math.random() * p.searchQueries.length)];
-    return callAPI(REFERRAL_PROMPT(p, BRAND.referralSignature), `Search for: ${q}\nFind ${p.label} referral partners in England and Wales for GR Commercial Finance. Return raw JSON only, no markdown.`);
+    return callAPI(
+      REFERRAL_PROMPT(p, BRAND.referralSignature),
+      `Search for: ${q}\nFind ${p.label} referral partners in England and Wales for GR Commercial Finance. Return a single valid JSON object only, no markdown, no text before or after the JSON.`
+    );
   };
 
   const handleSearch = async () => {
