@@ -249,8 +249,13 @@ export default function App() {
     const text = data.content.filter(b => b.type === "text").map(b => b.text).join("");
     const clean = text.replace(/```json|```/g, "").trim();
     const match = clean.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Could not parse response");
-    return JSON.parse(match[0]);
+if (!match) throw new Error("Could not parse response");
+try {
+  return JSON.parse(match[0]);
+} catch {
+  const fixed = match[0].replace(/[\u0000-\u001F\u007F-\u009F]/g, " ");
+  return JSON.parse(fixed);
+}
   };
 
   const searchDirect = async (key) => {
