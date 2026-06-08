@@ -300,6 +300,14 @@ export default function App() {
 
   const copyFull = (e, lead, i, fn) => { e.stopPropagation(); navigator.clipboard.writeText("To: "+(lead.emailAddress||"")+"\nSubject: "+lead.emailSubject+"\n\n"+buildEmail(lead)); fn(i); setTimeout(()=>fn(null),2000); };
 
+  const openInEmail = (e, lead) => {
+    e.stopPropagation();
+    const to = encodeURIComponent(lead.emailAddress || "");
+    const subject = encodeURIComponent(lead.emailSubject || "");
+    const body = encodeURIComponent(buildEmail(lead));
+    window.open("mailto:" + to + "?subject=" + subject + "&body=" + body, "_blank");
+  };
+
   const urgBg = u => ({High:"#7f1d1d",Medium:"#78350f",Low:"#1f2937"}[u]||"#1f2937");
   const urgFg = u => ({High:"#fca5a5",Medium:"#fcd34d",Low:"#9ca3af"}[u]||"#9ca3af");
   const scoreCol = s => s>=80?"#4ade80":s>=65?"#fbbf24":"#f87171";
@@ -341,6 +349,7 @@ export default function App() {
                 <div style={{fontSize:11,color:"#6b7280",lineHeight:1.7,whiteSpace:"pre-wrap",borderTop:"1px solid #1c1c28",paddingTop:8}}>{buildEmail(lead)}</div>
               </div>
               <button onClick={e=>copyFull(e,lead,i,setCop)} style={{padding:"5px 14px",borderRadius:4,border:"1px solid #1c1c28",background:cop===i?"#14532d":"transparent",color:cop===i?"#86efac":"#4b5563",cursor:"pointer",fontSize:11}}>{cop===i?"Copied!":"Copy full email"}</button>
+              <button onClick={e=>openInEmail(e,lead)} style={{padding:"5px 14px",borderRadius:4,border:"none",background:"#c8952a",color:"#fff",cursor:"pointer",fontSize:11,marginLeft:6}}>Open in Email</button>
             </div>}
           </div>
         )}
