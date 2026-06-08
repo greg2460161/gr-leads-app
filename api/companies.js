@@ -4,18 +4,18 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const { q, sic_codes, location, items_per_page = "100", start_index = "0" } = req.query;
+  const { q, sic_codes, location, size = "100", start_index = "0" } = req.query;
   const apiKey = process.env.CH_API_KEY;
 
   if (!apiKey) return res.status(500).json({ error: "CH_API_KEY not configured" });
 
   const params = new URLSearchParams({
-    items_per_page,
+    size,
     start_index,
-    restrictions: "active-companies",
+    company_status: "active",
   });
 
-  if (q) params.append("q", q);
+  if (q) params.append("company_name_includes", q);
   if (location) params.append("location", location);
   if (sic_codes) {
     sic_codes.split(",").map(s => s.trim()).filter(Boolean).forEach(s => params.append("sic_codes", s));
