@@ -132,10 +132,25 @@ function parseLeadsFromText(text, isReferral, productLabel) {
 
 async function getLeads(apiKey, searchQuery, productLabel, isReferral) {
   const prompt = isReferral
-    ? `Search for real ${productLabel} firms in England and Wales that could become referral partners for GR Commercial Finance, a commercial finance broker. List 4-6 real firms with their name, location, website if known, and email address if publicly available. For each firm explain briefly why they would be a good referral partner.`
-    : `Search for real companies or individuals in England and Wales who are likely to need ${productLabel} right now. Search: ${searchQuery}. List 4-6 real prospects with their company name, location, email address if publicly available, and a brief reason why they need this finance product.`;
+    ? `Search for real ${productLabel} firms in England and Wales that could become referral partners for GR Commercial Finance, a commercial finance broker. 
 
-  const text = await callClaude(apiKey, [{ role: "user", content: prompt }], true, "You are a helpful research assistant. Search the web and provide clear factual information about real companies. Present each company on its own line starting with the company name.");
+For each firm find:
+1. Company name and location
+2. Director or key contact name (search Companies House or LinkedIn)
+3. Email address - check their website contact page, about page, team page. Also try searching "site:companyname.co.uk email" or "companyname director email"
+4. Why they would be a good referral partner
+
+List 4-6 real firms. For each one, explicitly state the email address if found.`
+    : `Search for real companies in England and Wales who need ${productLabel} right now. Search: ${searchQuery}
+
+For each prospect find:
+1. Company or contact name and location  
+2. Email address - search their website, contact page, team page, or try "companyname contact email" or "director name email companyname"
+3. Why they need ${productLabel}
+
+List 4-6 real prospects. For each one, explicitly state the email address if found publicly. Also search for the key decision maker name.`;
+
+  const text = await callClaude(apiKey, [{ role: "user", content: prompt }], true, "You are a helpful research assistant. Search the web thoroughly. For each company, make a specific effort to find email addresses from their website contact pages, about pages, or public directories. Present each company on its own line starting with the company name.");
   const leads = parseLeadsFromText(text, isReferral, productLabel);
   return { leads, summary: text.slice(0, 200).replace(/\n/g, " ") };
 }
@@ -305,7 +320,7 @@ export default function App() {
     const to = encodeURIComponent(lead.emailAddress || "");
     const subject = encodeURIComponent(lead.emailSubject || "");
     const body = encodeURIComponent(buildEmail(lead));
-    window.open("mailto:" + to + "?subject=" + subject + "&body=" + body, "_blank");
+    window.open("https://mail.zoho.eu/zm/#compose?to=" + to + "&subject=" + subject + "&body=" + body, "_blank");
   };
 
   const urgBg = u => ({High:"#7f1d1d",Medium:"#78350f",Low:"#1f2937"}[u]||"#1f2937");
