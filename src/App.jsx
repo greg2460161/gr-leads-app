@@ -222,21 +222,24 @@ export default function App() {
               headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
               body: JSON.stringify({
                 model: "claude-sonnet-4-6",
-                max_tokens: 400,
-                system: "You are a helpful assistant. Reply in plain text only. No markdown.",
-                messages: [{ role: "user", content: `For UK company "${toEnrich[i].companyName}" in ${toEnrich[i].location || "England"}, a ${profile.label} business:\n1. Most likely email: info@domain.co.uk format\n2. One sentence why they need commercial finance\n\nReply in exactly this format:\nEMAIL: example@domain.co.uk\nREASON: one sentence` }],
+                max_tokens: 600,
+                system: "You are a contact researcher. Search the web to find real email addresses for UK companies. Always search for the company website and look at their contact page. Reply in plain text only. No markdown.",
+                tools: [{ type: "web_search_20250305", name: "web_search" }],
+                messages: [{ role: "user", content: `Search the web for "${toEnrich[i].companyName}" UK company. Find their website and look at their contact page to get a real email address. Also find the name of a director or key contact if possible.\n\nReply in exactly this format:\nEMAIL: real@email.co.uk\nNAME: Contact Name or null\nREASON: one sentence why they might need ${profile.label} finance` }],
               }),
             });
             if (r.ok) {
               const d = await r.json();
               const text = d.content.filter(b => b.type === "text").map(b => b.text).join("");
               const em = text.match(/EMAIL:\s*([\w.+-]+@[\w.-]+\.[a-zA-Z]{2,})/i);
+              const nm = text.match(/NAME:\s*(.+)/i);
               const re = text.match(/REASON:\s*(.+)/i);
-              if (em) enriched[i] = { ...enriched[i], emailAddress: em[1], emailConfidence: "Likely" };
+              if (em) enriched[i] = { ...enriched[i], emailAddress: em[1], emailConfidence: "Verified" };
+              if (nm && nm[1].trim().toLowerCase() !== "null") enriched[i] = { ...enriched[i], contactName: nm[1].trim() };
               if (re) enriched[i] = { ...enriched[i], signal: re[1].trim() };
             }
           } catch {}
-          if (i < toEnrich.length - 1) await new Promise(res => setTimeout(res, 200));
+          if (i < toEnrich.length - 1) await new Promise(res => setTimeout(res, 800));
         }
         setChLeads(enriched);
         setChProgress("Done - " + companies.length + " companies ready");
