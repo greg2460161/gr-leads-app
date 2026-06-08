@@ -72,6 +72,7 @@ async function apiCall(apiKey, system, user) {
 }
 
 async function searchAndFormat(apiKey, searchQuery, formatPrompt) {
+  // Step 1: Search with web search tool
   const searchR = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -91,11 +92,13 @@ async function searchAndFormat(apiKey, searchQuery, formatPrompt) {
   const searchD = await searchR.json();
   const searchResults = searchD.content.filter(b => b.type === "text").map(b => b.text).join("");
 
+  // Step 2: Format into JSON
   const jsonText = await apiCall(apiKey,
     `You are a JSON formatter. You receive search results and output ONLY a valid JSON object. Never include markdown, backticks, or any text outside the JSON object. Always start your response with { and end with }.`,
     `${formatPrompt}\n\nSearch results to use:\n${searchResults}\n\nRespond with ONLY the JSON object, starting with { and ending with }. No other text.`
   );
 
+  // Parse JSON
   const trimmed = jsonText.trim();
   const start = trimmed.indexOf("{");
   const end = trimmed.lastIndexOf("}");
@@ -258,4 +261,137 @@ Include 3 to 5 partners. Use only real data from the search results.`;
           Direct Leads
         </button>
         <button onClick={()=>{setMode("referral");setLeads([]);setSummary("");setError("");}}
-          style={{padding:"12px 20px",border:"none",borderBottom:mode==="referral"?"2px solid #2ac87a":"2px solid transparent",background:"transparent",color:mode==="referral"?"#2ac87a"
+          style={{padding:"12px 20px",border:"none",borderBottom:mode==="referral"?"2px solid #2ac87a":"2px solid transparent",background:"transparent",color:mode==="referral"?"#2ac87a":"#4b5563",cursor:"pointer",fontSize:13,fontWeight:700}}>
+          Referral Partners
+        </button>
+      </div>
+
+      <div style={{background:"#0c0c12",borderBottom:"1px solid #1c1c28",padding:"0 24px",display:"flex",overflowX:"auto"}}>
+        {(mode==="direct"?Object.entries(DIRECT_PRODUCTS):Object.entries(REFERRAL_PARTNERS)).map(([key,cfg])=>(
+          <button key={key} onClick={()=>{mode==="direct"?setActiveProduct(key):setActivePartner(key);setLeads([]);setSummary("");setError("");}}
+            style={{padding:"9px 14px",border:"none",borderBottom:(mode==="direct"?activeProduct:activePartner)===key?`2px solid ${cfg.color}`:"2px solid transparent",background:"transparent",color:(mode==="direct"?activeProduct:activePartner)===key?cfg.color:"#374151",cursor:"pointer",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>
+            {cfg.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{maxWidth:1040,margin:"0 auto",padding:"20px 24px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,gap:12,flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontSize:13,color:curProduct.color,fontWeight:600,marginBottom:2}}>{curProduct.label}</div>
+            <div style={{fontSize:11,color:"#374151"}}>{curProduct.description}</div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            {leads.length>0&&<>
+              <button onClick={()=>setViewMode(v=>v==="cards"?"table":"cards")} style={{padding:"7px 12px",borderRadius:5,border:"1px solid #1c1c28",background:"transparent",color:"#4b5563",cursor:"pointer",fontSize:11}}>{viewMode==="cards"?"Table":"Cards"}</button>
+              <button onClick={exportCSV} style={{padding:"7px 14px",borderRadius:5,border:"1px solid #1c1c28",background:"transparent",color:"#4b5563",cursor:"pointer",fontSize:12}}>Export CSV</button>
+            </>}
+            <button onClick={handleSearch} disabled={isSearching}
+              style={{padding:"8px 22px",borderRadius:5,border:"none",background:isSearching?"#1c1c28":mode==="direct"?"#c8952a":"#2ac87a",color:isSearching?"#4b5563":"#fff",cursor:isSearching?"not-allowed":"pointer",fontSize:13,fontWeight:700,minWidth:140}}>
+              {isSearching?"Searching...":mode==="direct"?"Hunt Leads":"Find Partners"}
+            </button>
+          </div>
+        </div>
+
+        {error&&<div style={{background:"#1a0808",border:"1px solid #7f1d1d",borderRadius:6,padding:"9px 14px",marginBottom:12,color:"#fca5a5",fontSize:12}}>{error}</div>}
+        {summary&&<div style={{background:"#0a120a",border:"1px solid #14532d44",borderRadius:6,padding:"9px 14px",marginBottom:14,fontSize:12,color:"#86efac"}}>{summary}</div>}
+
+        {viewMode==="table"&&leads.length>0&&(
+          <div style={{overflowX:"auto",borderRadius:8,border:"1px solid #1c1c28"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+              <thead><tr style={{background:"#0f0f16",borderBottom:"1px solid #1c1c28"}}>
+                {(mode==="direct"?["Company","Contact","Location","Email","Conf","Signal","Deal","Urgency","Score",""]
+                  :["Firm","Contact","Location","Email","Conf","Profile","Opportunity","Score",""]).map(h=>(
+                  <th key={h} style={{padding:"9px 10px",textAlign:"left",color:"#374151",fontWeight:600,whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>{leads.map((lead,i)=>{
+                const score=lead.qualificationScore||lead.partnerScore;
+                return(<tr key={i} style={{borderBottom:"1px solid #1c1c28",background:i%2===0?"#09090d":"#0c0c12"}}>
+                  <td style={{padding:"8px 10px",color:"#ede8de",fontWeight:600}}>{lead.companyName}</td>
+                  <td style={{padding:"8px 10px",color:"#6b7280"}}>{lead.contactName||"-"}</td>
+                  <td style={{padding:"8px 10px",color:"#4b5563"}}>{lead.location}</td>
+                  <td style={{padding:"8px 10px"}}>{lead.emailAddress?<span style={{color:"#c8952a",fontFamily:"monospace",fontSize:10}}>{lead.emailAddress}</span>:<span style={{color:"#1f2937"}}>-</span>}</td>
+                  <td style={{padding:"8px 10px"}}>{lead.emailConfidence&&<span style={{padding:"2px 6px",borderRadius:3,background:confBg(lead.emailConfidence),color:confFg(lead.emailConfidence),fontSize:10}}>{lead.emailConfidence}</span>}</td>
+                  {mode==="direct"?<>
+                    <td style={{padding:"8px 10px",color:"#6b7280",maxWidth:150}}>{lead.signal}</td>
+                    <td style={{padding:"8px 10px",color:"#ede8de",fontWeight:700,whiteSpace:"nowrap"}}>{lead.estimatedDeal}</td>
+                    <td style={{padding:"8px 10px"}}><span style={{padding:"2px 6px",borderRadius:3,background:urgBg(lead.urgency),color:urgFg(lead.urgency),fontSize:10}}>{lead.urgency}</span></td>
+                  </>:<>
+                    <td style={{padding:"8px 10px",color:"#6b7280",maxWidth:150}}>{lead.clientProfile}</td>
+                    <td style={{padding:"8px 10px",color:"#6b7280",maxWidth:150}}>{lead.referralOpportunity}</td>
+                  </>}
+                  <td style={{padding:"8px 10px"}}><span style={{color:scoreCol(score),fontWeight:700}}>{score}</span></td>
+                  <td style={{padding:"8px 10px"}}><button onClick={e=>copyEmail(e,i,lead)} style={{padding:"3px 9px",borderRadius:3,border:"1px solid #1c1c28",background:copied===i?"#14532d":"transparent",color:copied===i?"#86efac":"#4b5563",cursor:"pointer",fontSize:10}}>{copied===i?"Copied":"Copy"}</button></td>
+                </tr>);
+              })}</tbody>
+            </table>
+          </div>
+        )}
+
+        {viewMode==="cards"&&leads.length>0&&(
+          <div style={{display:"grid",gap:8}}>
+            {leads.map((lead,i)=>{
+              const score=lead.qualificationScore||lead.partnerScore;
+              return(<div key={i} onClick={()=>setExpanded(expanded===i?null:i)}
+                style={{background:"#0f0f16",border:`1px solid ${expanded===i?"#c8952a44":"#1c1c28"}`,borderRadius:8,overflow:"hidden",cursor:"pointer"}}>
+                <div style={{padding:"13px 16px",display:"flex",justifyContent:"space-between",gap:12}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4,flexWrap:"wrap"}}>
+                      <span style={{fontSize:14,fontWeight:700,color:"#ede8de"}}>{lead.companyName}</span>
+                      {lead.contactName&&<span style={{fontSize:11,color:"#4b5563"}}>{lead.contactName}</span>}
+                      {mode==="direct"&&lead.urgency&&<span style={{fontSize:10,padding:"2px 6px",borderRadius:3,background:urgBg(lead.urgency),color:urgFg(lead.urgency)}}>{lead.urgency}</span>}
+                    </div>
+                    <div style={{fontSize:11,color:"#374151",marginBottom:5}}>{lead.location}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                      {lead.emailAddress
+                        ?<><span style={{fontSize:11,color:"#c8952a",fontFamily:"monospace",background:"#c8952a11",padding:"2px 8px",borderRadius:3}}>{lead.emailAddress}</span>
+                          <span style={{fontSize:10,padding:"2px 5px",borderRadius:3,background:confBg(lead.emailConfidence),color:confFg(lead.emailConfidence)}}>{lead.emailConfidence}</span></>
+                        :<span style={{fontSize:11,color:"#374151"}}>No email found</span>}
+                    </div>
+                    <div style={{fontSize:12,color:"#6b7280"}}>{mode==="direct"?lead.signal:lead.referralOpportunity}</div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    {mode==="direct"&&<><div style={{fontSize:15,fontWeight:700,color:"#ede8de"}}>{lead.estimatedDeal}</div><div style={{fontSize:10,color:"#374151",marginBottom:6}}>est. deal</div></>}
+                    <div style={{width:32,height:32,borderRadius:"50%",border:`2px solid ${scoreCol(score)}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:scoreCol(score),marginLeft:"auto"}}>{score}</div>
+                  </div>
+                </div>
+                {expanded===i&&(
+                  <div style={{borderTop:"1px solid #1c1c28",padding:"13px 16px",background:"#09090d"}}>
+                    {lead.contactHint&&<div style={{marginBottom:12}}>
+                      <div style={{fontSize:10,color:"#374151",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>How to Approach</div>
+                      <div style={{fontSize:12,color:"#6b7280"}}>{lead.contactHint}</div>
+                    </div>}
+                    {lead.emailSubject&&<div>
+                      <div style={{fontSize:10,color:"#374151",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Outreach Email</div>
+                      <div style={{background:"#0f0f16",border:"1px solid #1c1c28",borderRadius:6,padding:"10px 13px",marginBottom:8}}>
+                        {lead.emailAddress&&<div style={{fontSize:11,color:"#374151",marginBottom:4}}>To: <span style={{color:"#c8952a",fontFamily:"monospace"}}>{lead.emailAddress}</span></div>}
+                        <div style={{fontSize:11,color:"#374151",marginBottom:8}}>Subject: <span style={{color:"#ede8de",fontWeight:500}}>{lead.emailSubject}</span></div>
+                        <div style={{fontSize:11,color:"#6b7280",lineHeight:1.7,whiteSpace:"pre-wrap",borderTop:"1px solid #1c1c28",paddingTop:8}}>{lead.emailBody}</div>
+                      </div>
+                      <button onClick={e=>copyEmail(e,i,lead)} style={{padding:"5px 14px",borderRadius:4,border:"1px solid #1c1c28",background:copied===i?"#14532d":"transparent",color:copied===i?"#86efac":"#4b5563",cursor:"pointer",fontSize:11}}>
+                        {copied===i?"Copied!":"Copy full email"}
+                      </button>
+                    </div>}
+                  </div>
+                )}
+              </div>);
+            })}
+          </div>
+        )}
+
+        {!isSearching&&leads.length===0&&!error&&(
+          <div style={{textAlign:"center",padding:"48px 20px"}}>
+            <div style={{fontSize:14,color:"#374151",marginBottom:6}}>{mode==="direct"?"Ready to hunt direct leads":"Ready to find referral partners"}</div>
+            <div style={{fontSize:12,color:"#1f2937"}}>Enter your API key - select a product - click {mode==="direct"?"Hunt Leads":"Find Partners"}</div>
+          </div>
+        )}
+
+        <div style={{marginTop:28,paddingTop:14,borderTop:"1px solid #1c1c28",display:"flex",justifyContent:"space-between",fontSize:10,color:"#1f2937",flexWrap:"wrap",gap:8}}>
+          <span>GR Commercial Finance - enquiries@grcommercialfinance.co.uk - 07510 859352 - Manchester</span>
+          <span>Public data only - Comply with UK GDPR and FCA rules before outreach</span>
+        </div>
+      </div>
+    </div>
+  );
+}
