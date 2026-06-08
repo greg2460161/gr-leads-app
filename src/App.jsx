@@ -42,74 +42,98 @@ const LOGIN_PASSWORD = "GRLeads2026";
 
 function parseLeads(text, productLabel, isReferral) {
   const leads = [];
-  // Split on numbered entries - handles 1. 1) **1. etc
-  const entries = text.split(/\n(?=\*{0,2}\d+[\.\)]\s)/);
-  
+
+  // Try multiple splitting strategies
+  let entries = [];
+
+  // Strategy 1: numbered list
+  const numbered = text.split(/\n(?=\*{0,2}\d+[\.\)]\s)/);
+  if (numbered.length > 2) entries = numbered;
+
+  // Strategy 2: split on bold company names **Company Name**
+  if (entries.length < 2) {
+    const bolded = text.split(/\n(?=\*\*[A-Z])/);
+    if (bolded.length > 2) entries = bolded;
+  }
+
+  // Strategy 3: split on lines that look like company names (capitalized, short)
+  if (entries.length < 2) {
+    const lines = text.split("\n");
+    let current = [];
+    for (const line of lines) {
+      const clean = line.replace(/\*\*/g, "").trim();
+      if (clean.match(/^[A-Z][A-Za-z\s&,\.]{3,50}$/) && clean.length < 60 && !clean.includes("http") && !clean.includes("@")) {
+        if (current.length > 2) entries.push(current.join("\n"));
+        current = [line];
+      } else {
+        current.push(line);
+      }
+    }
+    if (current.length > 2) entries.push(current.join("\n"));
+  }
+
+  // Strategy 4: just use the whole text and find all emails
+  if (entries.length < 2) {
+    const emailMatches = [...text.matchAll(/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/g)];
+    const nameMatches = [...text.matchAll(/\*\*([A-Z][^*\n]{3,50})\*\*/g)];
+    for (let i = 0; i < Math.max(emailMatches.length, nameMatches.length); i++) {
+      const name = nameMatches[i] ? nameMatches[i][1].trim() : "";
+      const email = emailMatches[i] ? emailMatches[i][0] : null;
+      if (name && name.length > 2) {
+        const startIdx = text.indexOf(nameMatches[i][0]);
+        const context = text.slice(startIdx, startIdx + 300).replace(/\*\*/g, "").replace(/\n/g, " ");
+        leads.push(buildLead(name, email, "Verified", context, productLabel, isReferral));
+      }
+    }
+    if (leads.length > 0) return leads.slice(0, 6);
+  }
+
   for (const entry of entries) {
     if (!entry.trim()) continue;
     const lines = entry.split("\n").map(l => l.replace(/\*\*/g, "").trim()).filter(Boolean);
     if (!lines.length) continue;
 
-    // Get company name from first line
     let name = lines[0].replace(/^\d+[\.\)]\s*/, "").replace(/^[\*\s]+/, "").trim();
-    // Handle "1. Company Name - description" format
     if (name.includes(" - ")) name = name.split(" - ")[0].trim();
     if (name.includes(": ")) name = name.split(": ")[1]?.trim() || name;
     if (!name || name.length < 2) continue;
 
-    // Find email
     const emailMatch = entry.match(/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/);
-    
-    // Find location
-    let location = "England / Wales";
-    const locPatterns = [
-      /Location[:\s]+([^\n,]+(?:,\s*[^\n]+)?)/i,
-      /Based in[:\s]+([^\n,]+)/i,
-      /\b(London|Manchester|Birmingham|Leeds|Bristol|Cardiff|Liverpool|Sheffield|Newcastle|Nottingham|Leicester|Edinburgh|Glasgow|Brighton|Oxford|Cambridge|Exeter|Plymouth|Norwich|Southampton|Portsmouth|Reading|Milton Keynes|Coventry|Derby|Hull|Stoke|Wolverhampton|Bolton|Oldham|Salford|Stockport|Bury|Rochdale|Wigan|Bolton|Preston|Blackpool|Lancaster|Kendal|Carlisle|York|Bradford|Wakefield|Huddersfield|Halifax|Barnsley|Rotherham|Doncaster|Grimsby|Lincoln|Peterborough|Ipswich|Colchester|Chelmsford|Luton|Watford|St Albans|Hertford|Stevenage|Bedford|Northampton|Kettering|Wellingborough|Corby|Leicester|Loughborough|Nottingham|Derby|Chesterfield|Mansfield|Newark|Grantham|Boston|Spalding|Skegness|Mablethorpe|Cleethorpes|Scunthorpe|Beverley|Scarborough|Whitby|Middlesbrough|Stockton|Hartlepool|Darlington|Durham|Sunderland|South Shields|Gateshead|Chester|Warrington|Runcorn|Widnes|Birkenhead|Wallasey|Southport|St Helens|Wigan|Skelmersdale|Ormskirk|Accrington|Burnley|Nelson|Colne|Skipton|Keighley|Ilkley|Harrogate|Ripon|Knaresborough|Selby|Pontefract|Castleford|Dewsbury|Batley|Morley|Pudsey|Shipley|Bingley|Keighley|Saltaire|Wales|Cardiff|Swansea|Newport|Bristol|Bath|Swindon|Gloucester|Cheltenham|Worcester|Hereford|Shrewsbury|Telford|Stoke|Stafford|Lichfield|Tamworth|Burton|Walsall|West Bromwich|Dudley|Sandwell|Solihull|Coventry|Rugby|Leamington|Warwick|Stratford|Nuneaton|Hinckley|Melton|Grantham)[,\s]/i
-    ];
-    for (const pat of locPatterns) {
-      const m = entry.match(pat);
-      if (m) { location = m[1]?.trim() || m[0]?.trim(); break; }
-    }
-
-    // Find contact name
-    let contactName = null;
-    const contactPatterns = [
-      /(?:Partner|Director|Contact|Key Contact|Manager|Principal)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+)/,
-      /([A-Z][a-z]+ [A-Z][a-z]+)(?:\s*[-–]\s*(?:Partner|Director|Manager|Principal))/,
-    ];
-    for (const pat of contactPatterns) {
-      const m = entry.match(pat);
-      if (m) { contactName = m[1]?.trim(); break; }
-    }
-
-    // Build context
     const context = lines.slice(1).join(" ").slice(0, 200);
-    const signal = context || (isReferral ? "Potential referral partner for " + productLabel : "Potential " + productLabel + " client");
-
-    const emailBody = isReferral
-      ? `Dear ${contactName || name + " Team"},\n\nI am writing from GR Commercial Finance, specialist commercial finance brokers covering England and Wales.\n\nWe work with ${productLabel.toLowerCase()} firms on a referral basis. When your clients need bridging loans, development finance, business loans or merchant cash advances, we handle the entire process and pay you a referral fee for every completed deal.\n\nWould you be open to a brief conversation about how we could work together? We are always looking to build long-term relationships with trusted professionals.\n\n${EMAIL_SIG}`
-      : `Dear ${contactName || name + " Team"},\n\nI am writing from GR Commercial Finance, specialist commercial finance brokers covering England and Wales.\n\nWe specialise in ${productLabel.toLowerCase()} and noticed that ${name} may benefit from our services. We offer fast approvals, competitive rates and a personal service tailored to businesses like yours.\n\nPlease feel free to call us on 07510 859352 or reply to this email to discuss your requirements.\n\n${EMAIL_SIG}`;
-
-    leads.push({
-      companyName: name,
-      contactName,
-      location,
-      emailAddress: emailMatch ? emailMatch[0] : null,
-      emailConfidence: emailMatch ? "Verified" : null,
-      signal: signal.replace(/\n/g, " ").slice(0, 180),
-      estimatedDeal: "GBP 100,000 - 500,000",
-      urgency: "Medium",
-      qualificationScore: emailMatch ? 78 : 65,
-      partnerScore: emailMatch ? 78 : 65,
-      clientProfile: context.slice(0, 120),
-      referralOpportunity: context.slice(0, 180),
-      contactHint: emailMatch ? "Email found - contact directly" : "Search " + name.toLowerCase().replace(/\s+/g, "") + ".co.uk for contact details",
-      emailSubject: isReferral ? "Referral partnership opportunity - GR Commercial Finance" : productLabel + " enquiry - GR Commercial Finance",
-      emailBodyCore: emailBody,
-    });
+    leads.push(buildLead(name, emailMatch ? emailMatch[0] : null, emailMatch ? "Verified" : null, context, productLabel, isReferral));
   }
+
   return leads.filter(l => l.companyName.length > 2).slice(0, 6);
+}
+
+function buildLead(name, email, emailConfidence, context, productLabel, isReferral) {
+  const locationMatch = context.match(/\b(London|Manchester|Birmingham|Leeds|Bristol|Cardiff|Liverpool|Sheffield|Newcastle|Nottingham|Leicester|Edinburgh|Glasgow|Brighton|Oxford|Cambridge|Exeter|Southampton|Reading|Coventry|Derby|Hull|York|Bradford|Wakefield|Norwich|Ipswich|Chelmsford|Luton|Watford|Northampton|Kettering|Middlesbrough|Stockton|Darlington|Durham|Sunderland|Chester|Warrington|Birkenhead|Southport|Accrington|Burnley|Skipton|Harrogate|Selby|Pontefract|Dewsbury|Swansea|Newport|Bath|Swindon|Gloucester|Cheltenham|Worcester|Shrewsbury|Telford|Stafford|Lichfield|Tamworth|Walsall|Dudley|Solihull|Rugby|Leamington|Warwick|Nuneaton|Hinckley|Maidenhead|Berkshire|Surrey|Kent|Essex|Suffolk|Norfolk|Hertfordshire|Buckinghamshire|Oxfordshire|Wiltshire|Somerset|Devon|Cornwall|Dorset|Hampshire|Sussex|Cambridgeshire|Lincolnshire|Yorkshire|Lancashire|Cheshire|Derbyshire|Nottinghamshire|Leicestershire|Northamptonshire|Bedfordshire|Staffordshire|Shropshire|Herefordshire|Worcestershire|Gloucestershire|Avon|Cumbria|Northumberland|County Durham|Tyne and Wear|West Midlands|East Midlands|East Anglia|South East|South West|North West|North East|East of England|Wales|England)\b/i);
+  const location = locationMatch ? locationMatch[0] : "England / Wales";
+
+  const contactMatch = context.match(/([A-Z][a-z]+ [A-Z][a-z]+)(?:\s*[-–,]\s*(?:Partner|Director|Manager|Principal|Head|Founder|MD|CEO))/);
+  const contactName = contactMatch ? contactMatch[1] : null;
+
+  const emailBody = isReferral
+    ? `Dear ${contactName || name + " Team"},\n\nI am writing from GR Commercial Finance, specialist commercial finance brokers covering England and Wales.\n\nWe work with ${productLabel.toLowerCase()} firms on a referral basis. When your clients need bridging loans, development finance, business loans or merchant cash advances, we handle the entire process and pay you a referral fee for every completed deal.\n\nWould you be open to a brief conversation about how we could work together?\n\nKind regards,\n\nThe Team at GR Commercial Finance\nWeb: grcommercialfinance.co.uk\nEmail: enquiries@grcommercialfinance.co.uk\nMobile: 07510 859352\nManchester`
+    : `Dear ${contactName || name + " Team"},\n\nI am writing from GR Commercial Finance, specialist commercial finance brokers covering England and Wales.\n\nWe specialise in ${productLabel.toLowerCase()} and believe we could help your business. We offer fast approvals and competitive rates tailored to businesses like yours.\n\nPlease call us on 07510 859352 or reply to this email to discuss your requirements.\n\nKind regards,\n\nThe Team at GR Commercial Finance\nWeb: grcommercialfinance.co.uk\nEmail: enquiries@grcommercialfinance.co.uk\nMobile: 07510 859352\nManchester`;
+
+  return {
+    companyName: name,
+    contactName,
+    location,
+    emailAddress: email,
+    emailConfidence,
+    signal: context.replace(/\n/g, " ").slice(0, 180),
+    estimatedDeal: "GBP 100,000 - 500,000",
+    urgency: "Medium",
+    qualificationScore: email ? 78 : 65,
+    partnerScore: email ? 78 : 65,
+    clientProfile: context.slice(0, 120),
+    referralOpportunity: context.slice(0, 180),
+    contactHint: email ? "Email found - contact directly" : "Search " + name + " website for contact details",
+    emailSubject: isReferral ? "Referral partnership - GR Commercial Finance" : productLabel + " - GR Commercial Finance",
+    emailBodyCore: emailBody,
+  };
 }
 
 async function searchLeads(apiKey, query, productLabel, isReferral) {
