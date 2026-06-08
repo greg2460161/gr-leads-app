@@ -158,8 +158,10 @@ List 4-6 real prospects. For each one, explicitly state the email address if fou
 async function searchCompaniesHouse(chApiKey, query, sicCodes, location, maxResults) {
   const params = new URLSearchParams({ q: query || "limited", items_per_page: String(Math.min(maxResults, 100)), restrictions: "active-companies" });
   if (location) params.append("location", location);
-  const r = await fetch("https://api.company-information.service.gov.uk/advanced-search/companies?" + params.toString(), { headers: { Authorization: "Basic " + btoa(chApiKey + ":") } });
-  if (!r.ok) throw new Error("Companies House error: " + r.status);
+  const apiUrl = "https://api.company-information.service.gov.uk/advanced-search/companies?" + params.toString();
+  const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(apiUrl);
+  const r = await fetch(proxyUrl, { headers: { Authorization: "Basic " + btoa(chApiKey + ":") } });
+  if (!r.ok) throw new Error("Companies House error: " + r.status + ". Check your CH API key is correct.");
   const d = await r.json();
   let companies = d.items || [];
   if (sicCodes && sicCodes.length > 0) companies = companies.filter(c => c.sic_codes && c.sic_codes.some(s => sicCodes.includes(s)));
@@ -318,10 +320,8 @@ export default function App() {
   const openInEmail = (e, lead) => {
     e.stopPropagation();
     const full = "To: " + (lead.emailAddress || "") + "\nSubject: " + (lead.emailSubject || "") + "\n\n" + buildEmail(lead);
-    navigator.clipboard.writeText(full).then(() => {
-      window.open("https://mail.zoho.eu/zm/#compose", "_blank");
-      alert("Email copied to clipboard! Paste it into Zoho Mail with Ctrl+V");
-    });
+    navigator.clipboard.writeText(full);
+    window.open("https://mail.zoho.eu/zm/#compose", "_blank");
   };
 
   const urgBg = u => ({High:"#7f1d1d",Medium:"#78350f",Low:"#1f2937"}[u]||"#1f2937");
