@@ -61,7 +61,7 @@ async function apiCall(apiKey, system, user) {
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 4000,
+      max_tokens: 1500,
       system,
       messages: [{ role: "user", content: user }]
     })
@@ -83,7 +83,7 @@ async function searchAndFormat(apiKey, searchQuery, formatPrompt) {
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 4000,
+      max_tokens: 1500,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages: [{ role: "user", content: `Search for: ${searchQuery}. Find real companies and contacts in England and Wales. Return a detailed summary of what you found including company names, locations, contact details and why they might need finance.` }]
     })
