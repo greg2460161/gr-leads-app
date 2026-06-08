@@ -159,10 +159,21 @@ async function searchCompaniesHouse(chApiKey, query, sicCodes, location, maxResu
   const params = new URLSearchParams({ q: query || "limited", items_per_page: String(Math.min(maxResults, 100)), restrictions: "active-companies" });
   if (location) params.append("location", location);
   const apiUrl = "https://api.company-information.service.gov.uk/advanced-search/companies?" + params.toString();
-  const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(apiUrl);
-  const r = await fetch(proxyUrl, { headers: { Authorization: "Basic " + btoa(chApiKey + ":") } });
-  if (!r.ok) throw new Error("Companies House error: " + r.status + ". Check your CH API key is correct.");
-  const d = await r.json();
+  let d = null;
+  const proxies = [
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(apiUrl),
+    "https://corsproxy.io/?" + encodeURIComponent(apiUrl),
+    "https://proxy.cors.sh/" + apiUrl,
+  ];
+  let lastError = "";
+  for (const proxyUrl of proxies) {
+    try {
+      const r = await fetch(proxyUrl, { headers: { Authorization: "Basic " + btoa(chApiKey + ":"), "x-cors-api-key": "temp_" + Math.random() } });
+      if (r.ok) { d = await r.json(); break; }
+      lastError = "Status " + r.status;
+    } catch (err) { lastError = err.message; }
+  }
+  if (!d) throw new Error("Companies House search failed: " + lastError + ". Please check your CH API key.");
   let companies = d.items || [];
   if (sicCodes && sicCodes.length > 0) companies = companies.filter(c => c.sic_codes && c.sic_codes.some(s => sicCodes.includes(s)));
   return companies.map(c => ({
@@ -365,7 +376,7 @@ export default function App() {
                 <div style={{fontSize:11,color:"#6b7280",lineHeight:1.7,whiteSpace:"pre-wrap",borderTop:"1px solid #1c1c28",paddingTop:8}}>{buildEmail(lead)}</div>
               </div>
               <button onClick={e=>copyFull(e,lead,i,setCop)} style={{padding:"5px 14px",borderRadius:4,border:"1px solid #1c1c28",background:cop===i?"#14532d":"transparent",color:cop===i?"#86efac":"#4b5563",cursor:"pointer",fontSize:11}}>{cop===i?"Copied!":"Copy full email"}</button>
-              <button onClick={e=>openInEmail(e,lead)} style={{padding:"5px 14px",borderRadius:4,border:"none",background:"#c8952a",color:"#fff",cursor:"pointer",fontSize:11,marginLeft:6}}>Open in Email</button>
+              <button onClick={e=>openInEmail(e,lead)} style={{padding:"5px 14px",borderRadius:4,border:"none",background:"#c8952a",color:"#fff",cursor:"pointer",fontSize:11,marginLeft:6}}>Open Zoho (then Ctrl+V)</button>
             </div>}
           </div>
         )}
