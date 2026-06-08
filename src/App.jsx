@@ -317,10 +317,11 @@ export default function App() {
 
   const openInEmail = (e, lead) => {
     e.stopPropagation();
-    const to = encodeURIComponent(lead.emailAddress || "");
-    const subject = encodeURIComponent(lead.emailSubject || "");
-    const body = encodeURIComponent(buildEmail(lead));
-    window.open("https://mail.zoho.eu/zm/#compose?to=" + to + "&subject=" + subject + "&body=" + body, "_blank");
+    const full = "To: " + (lead.emailAddress || "") + "\nSubject: " + (lead.emailSubject || "") + "\n\n" + buildEmail(lead);
+    navigator.clipboard.writeText(full).then(() => {
+      window.open("https://mail.zoho.eu/zm/#compose", "_blank");
+      alert("Email copied to clipboard! Paste it into Zoho Mail with Ctrl+V");
+    });
   };
 
   const urgBg = u => ({High:"#7f1d1d",Medium:"#78350f",Low:"#1f2937"}[u]||"#1f2937");
