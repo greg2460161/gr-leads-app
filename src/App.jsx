@@ -2,19 +2,19 @@ import { useState } from "react";
 
 const PRODUCTS = {
   direct: {
-    bridging: { label: "Bridging Finance", color: "#c8952a", query: "Search for 5 real UK property auction houses or property investors in England and Wales who need bridging finance. For each one list: 1) Company name 2) Location 3) Email address from their website 4) Why they need bridging finance. Number each entry." },
-    development: { label: "Development Finance", color: "#2a7fc8", query: "Search for 5 real UK property developers in England and Wales who have recently received planning permission or are building new homes. For each one list: 1) Company name 2) Location 3) Email address from their website 4) Their current development project. Number each entry." },
-    refurbishment: { label: "Refurbishment Loans", color: "#9b5cf6", query: "Search for 5 real UK property investors or HMO landlords in England and Wales doing refurbishment projects. For each one list: 1) Company name 2) Location 3) Email address from their website 4) What they are refurbishing. Number each entry." },
-    businessloan: { label: "Business Loans", color: "#2ac87a", query: "Search for 5 real growing SME businesses in England and Wales that might need a business loan for expansion. For each one list: 1) Company name 2) Location 3) Email address from their website 4) Why they might need finance. Number each entry." },
-    mca: { label: "Merchant Cash Advance", color: "#ef4444", query: "Search for 5 real restaurants, cafes, bars or retail shops in England and Wales. For each one list: 1) Business name 2) Location 3) Email address or contact details from their website 4) Type of business. Number each entry." },
+    bridging: { label: "Bridging Finance", color: "#c8952a", query: "Find 4 UK property auction houses in England needing bridging finance. List name, location, email, reason." },
+    development: { label: "Development Finance", color: "#2a7fc8", query: "Find 4 UK property developers in England with planning permission. List name, location, email, project." },
+    refurbishment: { label: "Refurbishment Loans", color: "#9b5cf6", query: "Find 4 UK property investors doing HMO or refurbishment projects in England. List name, location, email, project." },
+    businessloan: { label: "Business Loans", color: "#2ac87a", query: "Find 4 growing SME businesses in England needing a business loan. List name, location, email, reason." },
+    mca: { label: "Merchant Cash Advance", color: "#ef4444", query: "Find 4 restaurants or retail shops in England needing fast finance. List name, location, email, type." },
   },
   referral: {
-    accountants: { label: "Accountants", color: "#0ea5e9", query: "Search for 5 real UK accountancy firms in England and Wales that work with SME business clients. Search their websites for contact details. For each firm list: 1) Firm name 2) Location 3) Email address from their website contact page 4) Partner or director name 5) Why they are a good referral partner for a commercial finance broker. Number each entry." },
-    ifas: { label: "IFAs", color: "#f59e0b", query: "Search for 5 real independent financial adviser firms in England and Wales. Search their websites for contact details. For each firm list: 1) Firm name 2) Location 3) Email address from their website 4) Adviser name 5) Why they would refer clients to a commercial finance broker. Number each entry." },
-    architects: { label: "Architects", color: "#8b5cf6", query: "Search for 5 real architectural practices in England and Wales that work on residential development or conversion projects. Search their websites for contact details. For each firm list: 1) Practice name 2) Location 3) Email address from their website 4) Director name 5) Why they would refer clients to a commercial finance broker. Number each entry." },
-    construction: { label: "Construction Firms", color: "#f97316", query: "Search for 5 real construction companies or building contractors in England and Wales. Search their websites for contact details. For each company list: 1) Company name 2) Location 3) Email address from their website 4) Director name 5) Why they would refer developer clients to a commercial finance broker. Number each entry." },
-    solicitors: { label: "Solicitors", color: "#10b981", query: "Search for 5 real property solicitor firms in England and Wales that handle property purchases and commercial transactions. Search their websites for contact details. For each firm list: 1) Firm name 2) Location 3) Email address from their website 4) Partner name 5) Why they would refer clients to a commercial finance broker. Number each entry." },
-    estateagents: { label: "Estate Agents", color: "#ec4899", query: "Search for 5 real estate agents in England and Wales. Search their websites for contact details. For each agency list: 1) Agency name 2) Location 3) Email address from their website 4) Manager name 5) Why they would refer buyers to a commercial finance broker. Number each entry." },
+    accountants: { label: "Accountants", color: "#0ea5e9", query: "Find 4 UK accountancy firms in England with SME clients. List firm name, location, email from website, partner name." },
+    ifas: { label: "IFAs", color: "#f59e0b", query: "Find 4 independent financial adviser firms in England. List firm name, location, email from website, adviser name." },
+    architects: { label: "Architects", color: "#8b5cf6", query: "Find 4 architectural practices in England doing development projects. List firm name, location, email from website, director name." },
+    construction: { label: "Construction Firms", color: "#f97316", query: "Find 4 construction companies in England. List company name, location, email from website, director name." },
+    solicitors: { label: "Solicitors", color: "#10b981", query: "Find 4 property solicitor firms in England. List firm name, location, email from website, partner name." },
+    estateagents: { label: "Estate Agents", color: "#ec4899", query: "Find 4 estate agents in England. List agency name, location, email from website, manager name." },
   },
 };
 
@@ -142,10 +142,10 @@ async function searchLeads(apiKey, query, productLabel, isReferral) {
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
-      system: "You are a lead researcher for GR Commercial Finance. Search the web for real UK companies. Always present results as a numbered list. For each company, include their name on the first line of each entry, then their location, email address (found from their website contact page), and relevant details on separate lines. Be specific - use real company names and real email addresses found online.",
+      max_tokens: 800,
+      system: "Find real UK companies. List 4 results as a numbered list. Each entry: company name, location, email from their website, one reason they are relevant.",
       tools: [{ type: "web_search_20250305", name: "web_search" }],
-      messages: [{ role: "user", content: query }],
+      messages: [{ role: "user", content: query.slice(0, 300) }],
     }),
   });
   if (!r.ok) { const e = await r.json(); throw new Error(e.error?.message || "API error " + r.status); }
