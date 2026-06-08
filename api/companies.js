@@ -12,32 +12,27 @@ export default async function handler(req, res) {
   const params = new URLSearchParams({
     items_per_page,
     start_index,
-    company_status: "active",
+    restrictions: "active-companies",
   });
 
-  if (q && q !== "limited") params.append("company_name_includes", q);
-  if (location) params.append("registered_office_address.locality", location);
+  if (q) params.append("q", q);
+  if (location) params.append("location", location);
   if (sic_codes) {
-    const codes = sic_codes.split(",").map(s => s.trim()).filter(Boolean);
-    codes.forEach(s => params.append("sic_codes", s));
+    sic_codes.split(",").map(s => s.trim()).filter(Boolean).forEach(s => params.append("sic_codes", s));
   }
 
   try {
-    const url = `https://api.company-information.service.gov.uk/advanced-search/companies?${params}`;
-    const r = await fetch(url, {
-      headers: {
-        Authorization: "Basic " + Buffer.from(apiKey + ":").toString("base64"),
-      },
-    });
+    const r = await fetch(
+      `https://api.company-information.service.gov.uk/advanced-search/companies?${params}`,
+      { headers: { Authorization: "Basic " + Buffer.from(apiKey + ":").toString("base64") } }
+    );
     if (!r.ok) {
       const txt = await r.text();
       return res.status(r.status).json({ error: "CH API error: " + r.status, detail: txt });
     }
     const data = await r.json();
     if (data.items) {
-      data.items = data.items.filter(c =>
-        c.company_status === "active" || !c.company_status
-      );
+      data.items = data.items.filter(c => !c.company_status || c.company_status === "active");
     }
     return res.status(200).json(data);
   } catch (e) {
